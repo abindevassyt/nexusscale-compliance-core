@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NexusScale — Compliance Engine Control Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Root ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-root:      #060b18;
+  --bg-nav:       #0a1020;
+  --bg-card:      rgba(255,255,255,0.035);
+  --bg-card-hov:  rgba(255,255,255,0.06);
+  --bg-input:     rgba(255,255,255,0.07);
+  --border:       rgba(255,255,255,0.08);
+  --border-hov:   rgba(99,102,241,0.5);
+
+  --primary:      #6366f1;
+  --primary-glow: rgba(99,102,241,0.35);
+  --primary-dark: #4f46e5;
+  --success:      #10b981;
+  --success-glow: rgba(16,185,129,0.3);
+  --warning:      #f59e0b;
+  --warning-glow: rgba(245,158,11,0.3);
+  --danger:       #ef4444;
+  --danger-glow:  rgba(239,68,68,0.3);
+  --info:         #38bdf8;
+  --info-glow:    rgba(56,189,248,0.3);
+  --muted:        rgba(255,255,255,0.45);
+
+  --text:         #e2e8f0;
+  --text-dim:     rgba(226,232,240,0.65);
+
+  --radius:       14px;
+  --radius-sm:    8px;
+  --transition:   .2s cubic-bezier(.4,0,.2,1);
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --nav-w:        240px;
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-root);
+  color: var(--text);
+  display: flex;
+  position: relative;
+}
+
+/* ── Animated Background ─────────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% -20%, rgba(99,102,241,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 110%, rgba(16,185,129,.10) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,  rgba(99,102,241,.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Sidebar Nav ─────────────────────────────────────────────────────────── */
+.nav {
+  width: var(--nav-w);
+  min-height: 100vh;
+  background: var(--bg-nav);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
+  backdrop-filter: blur(20px);
+}
+.nav-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo-title {
+  font-size: 16px; font-weight: 800; letter-spacing: -.5px;
+  background: linear-gradient(135deg, #818cf8, #34d399);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.nav-logo-sub {
+  font-size: 10px; color: var(--muted); margin-top: 2px;
+  letter-spacing: 1.2px; text-transform: uppercase;
+}
+.nav-section { padding: 16px 12px 4px; font-size: 10px; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; margin: 2px 8px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--text-dim);
+  transition: var(--transition); position: relative; user-select: none;
+}
+.nav-item:hover { background: var(--bg-card-hov); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(99,102,241,.22), rgba(99,102,241,.08));
+  color: #a5b4fc;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--danger);
+  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; color: #fff;
+}
+.nav-status {
+  margin-top: auto; padding: 16px; border-top: 1px solid var(--border);
+}
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; margin-right: 6px; }
+.status-dot.offline { background: var(--danger); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.2)} }
+
+/* ── Main Layout ──────────────────────────────────────────────────────────── */
+.main {
+  margin-left: var(--nav-w);
+  flex: 1; height: 100vh; overflow-y: auto;
+  position: relative; z-index: 1;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.main::-webkit-scrollbar { width: 5px; }
+.main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+
+/* ── Top Bar ──────────────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(20px);
+  background: rgba(6,11,24,.85);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-title { font-size: 18px; font-weight: 700; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.api-url { font-family: var(--font-mono); font-size: 11px; color: var(--muted); background: var(--bg-input); padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+#connection-badge { font-size: 11px; padding: 5px 12px; border-radius: 99px; font-weight: 600; }
+.badge-online { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid rgba(16,185,129,.3); }
+.badge-offline { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+
+/* ── Page Sections ───────────────────────────────────────────────────────── */
+.page { display: none; padding: 28px; animation: fadeIn .25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.page-sub   { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  padding: 20px;
+  transition: var(--transition);
+}
+.card:hover { border-color: rgba(255,255,255,.12); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; }
+
+/* ── Grid Layouts ────────────────────────────────────────────────────────── */
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:1200px) { .grid-4 { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:900px)  { .grid-4,.grid-3,.grid-2 { grid-template-columns: 1fr; } }
+
+/* ── Stat Cards ──────────────────────────────────────────────────────────── */
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative; overflow: hidden;
+  transition: var(--transition);
+  cursor: default;
+}
+.stat-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--accent-a,transparent) 0%, transparent 60%);
+  opacity: .15;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+.stat-icon { font-size: 26px; margin-bottom: 12px; }
+.stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.stat-delta { font-size: 11px; margin-top: 8px; font-weight: 600; }
+.stat-delta.up { color: var(--success); }
+.stat-delta.down { color: var(--danger); }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; outline: none;
+  transition: var(--transition); font-family: inherit;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); box-shadow: 0 0 20px var(--primary-glow); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { box-shadow: 0 0 20px var(--success-glow); }
+.btn-warning { background: var(--warning); color: #000; }
+.btn-warning:hover { box-shadow: 0 0 20px var(--warning-glow); }
+.btn-danger  { background: var(--danger);  color: #fff; }
+.btn-danger:hover  { box-shadow: 0 0 20px var(--danger-glow); }
+.btn-ghost { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-card-hov); border-color: var(--border-hov); }
+.btn-sm { padding: 7px 13px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .6px; }
+.form-input, .form-select {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 13.5px;
+  transition: var(--transition); outline: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+.form-input::placeholder { color: var(--muted); }
+.form-select option { background: #0a1020; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+}
+.badge-approved { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid rgba(16,185,129,.3); }
+.badge-flagged  { background: rgba(245,158,11,.15);  color: var(--warning);  border: 1px solid rgba(245,158,11,.3); }
+.badge-error    { background: rgba(239,68,68,.15);   color: var(--danger);   border: 1px solid rgba(239,68,68,.3); }
+.badge-pending  { background: rgba(99,102,241,.15);  color: #a5b4fc;         border: 1px solid rgba(99,102,241,.3); }
+.badge-closed   { background: rgba(16,185,129,.15);  color: var(--success);  border: 1px solid rgba(16,185,129,.3); }
+.badge-open     { background: rgba(239,68,68,.15);   color: var(--danger);   border: 1px solid rgba(239,68,68,.3); }
+.badge-half-open{ background: rgba(245,158,11,.15);  color: var(--warning);  border: 1px solid rgba(245,158,11,.3); }
+
+/* ── Result Panel ────────────────────────────────────────────────────────── */
+.result-panel {
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-top: 16px;
+  font-family: var(--font-mono); font-size: 12px;
+  max-height: 360px; overflow-y: auto; white-space: pre-wrap;
+  word-break: break-all; line-height: 1.6;
+  display: none;
+}
+.result-panel.show { display: block; animation: fadeIn .2s ease; }
+.result-approved { border-left: 3px solid var(--success); }
+.result-flagged  { border-left: 3px solid var(--warning); }
+.result-error    { border-left: 3px solid var(--danger);  }
+
+/* ── Test Case Cards ─────────────────────────────────────────────────────── */
+.test-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; background: var(--bg-card); position: relative;
+  overflow: hidden; transition: var(--transition);
+}
+.test-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.test-card.test-a::before { background: linear-gradient(90deg, var(--success), #34d399); }
+.test-card.test-b::before { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+.test-card.test-c::before { background: linear-gradient(90deg, var(--danger),  #f87171); }
+.test-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.test-badge { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; display: inline-block; margin-bottom: 12px; }
+.test-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.test-desc  { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+.test-params { background: rgba(0,0,0,.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; }
+.test-params code { font-family: var(--font-mono); font-size: 11.5px; color: #93c5fd; display: block; line-height: 1.8; }
+.test-result {
+  background: rgba(0,0,0,.3); border-radius: var(--radius-sm);
+  padding: 12px; font-family: var(--font-mono); font-size: 11.5px;
+  max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.6;
+  display: none;
+}
+.test-result.show { display: block; animation: fadeIn .2s ease; }
+.running-indicator { color: var(--primary); }
+.pass-indicator { color: var(--success); }
+.fail-indicator { color: var(--danger); }
+
+/* ── Agent Cards ─────────────────────────────────────────────────────────── */
+.agent-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; background: var(--bg-card);
+  position: relative; overflow: hidden;
+}
+.agent-card::after {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 100px; height: 100px;
+  background: radial-gradient(circle, var(--agent-color, var(--primary-glow)), transparent 70%);
+  border-radius: 50%; transform: translate(30%, -30%); opacity: .5;
+}
+.agent-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.agent-persona { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+.agent-metric { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.agent-metric:last-child { border-bottom: none; }
+.agent-metric-label { font-size: 12px; color: var(--muted); }
+.agent-metric-value { font-size: 14px; font-weight: 700; }
+.agent-role-badge { position: absolute; top: 16px; right: 16px; font-size: 10px; padding: 3px 8px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.role-supervisor  { background: rgba(99,102,241,.2); color: #a5b4fc; }
+.role-worker      { background: rgba(16,185,129,.2); color: #6ee7b7; }
+.role-communicator{ background: rgba(245,158,11,.2);  color: #fcd34d; }
+
+/* ── Policy Table ────────────────────────────────────────────────────────── */
+.policy-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.policy-table th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+.policy-table td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+.policy-table tr:last-child td { border-bottom: none; }
+.policy-table tr:hover td { background: var(--bg-card-hov); }
+.limit-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.limit-bar { height: 6px; border-radius: 99px; background: var(--bg-input); flex: 1; overflow: hidden; }
+.limit-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--primary), #818cf8); transition: width 1s ease; }
+
+/* ── Audit Table ─────────────────────────────────────────────────────────── */
+.audit-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.audit-table th { text-align: left; padding: 9px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; background: rgba(0,0,0,.2); }
+.audit-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.04); font-family: var(--font-mono); font-size: 11.5px; }
+.audit-table tr:hover td { background: var(--bg-card-hov); }
+.trace-id { color: #93c5fd; cursor: pointer; text-decoration: underline dotted; }
+
+/* ── Log Terminal ────────────────────────────────────────────────────────── */
+.log-terminal {
+  background: #030712; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  height: 520px; overflow-y: auto; font-family: var(--font-mono);
+  font-size: 12px; line-height: 1.7;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.1) transparent;
+}
+.log-terminal::-webkit-scrollbar { width: 4px; }
+.log-terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+.log-line { display: flex; gap: 10px; align-items: baseline; padding: 1px 0; }
+.log-t   { color: rgba(255,255,255,.3); min-width: 56px; flex-shrink: 0; }
+.log-name{ color: #818cf8; min-width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-msg { color: rgba(255,255,255,.75); flex: 1; word-break: break-word; }
+.log-INFO    .log-level { color: #38bdf8; }
+.log-WARNING .log-level { color: var(--warning); }
+.log-ERROR   .log-level { color: var(--danger); }
+.log-DEBUG   .log-level { color: rgba(255,255,255,.4); }
+.log-level { min-width: 56px; font-weight: 700; font-size: 10px; flex-shrink: 0; }
+
+/* ── Circuit Breaker Visual ──────────────────────────────────────────────── */
+.circuit-viz {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 24px 0; flex-wrap: wrap;
+}
+.circuit-node {
+  width: 100px; height: 100px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2px solid; font-size: 12px; font-weight: 700;
+  transition: var(--transition); cursor: default;
+  position: relative;
+}
+.circuit-node.active { box-shadow: 0 0 30px var(--node-glow); }
+.circuit-node .node-icon { font-size: 24px; margin-bottom: 4px; }
+.circuit-CLOSED   { border-color: var(--success); color: var(--success); --node-glow: var(--success-glow); background: rgba(16,185,129,.08); }
+.circuit-OPEN     { border-color: var(--danger);  color: var(--danger);  --node-glow: var(--danger-glow);  background: rgba(239,68,68,.08); }
+.circuit-HALF_OPEN{ border-color: var(--warning); color: var(--warning); --node-glow: var(--warning-glow); background: rgba(245,158,11,.08); }
+.circuit-arrow { font-size: 20px; color: var(--muted); }
+
+/* ── Chart Container ─────────────────────────────────────────────────────── */
+.chart-wrap { position: relative; height: 200px; }
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── Notification Toast ──────────────────────────────────────────────────── */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: #0f172a; border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 18px; min-width: 280px;
+  font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+  animation: slideIn .25s ease; display: flex; align-items: center; gap: 10px;
+}
+.toast-success { border-left: 3px solid var(--success); }
+.toast-error   { border-left: 3px solid var(--danger);  }
+.toast-info    { border-left: 3px solid var(--info);    }
+.toast-warning { border-left: 3px solid var(--warning); }
+@keyframes slideIn { from{transform:translateX(100px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ── Progress Bars ───────────────────────────────────────────────────────── */
+.progress-bar { height: 8px; background: var(--bg-input); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="nav-logo-title">⬡ NexusScale</div>
+    <div class="nav-logo-sub">Compliance Engine v1.0</div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="showPage('dashboard')">
+    <span class="icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('submit')">
+    <span class="icon">📤</span> Submit Expense
+  </div>
+
+  <div class="nav-section">Testing</div>
+  <div class="nav-item" onclick="showPage('test-runner')">
+    <span class="icon">🧪</span> Test Runner
+    <span class="nav-badge" id="test-badge" style="display:none">3</span>
+  </div>
+  <div class="nav-item" onclick="showPage('audit')">
+    <span class="icon">📋</span> Audit Trail
+  </div>
+
+  <div class="nav-section">System</div>
+  <div class="nav-item" onclick="showPage('agents')">
+    <span class="icon">🤖</span> Agent Monitor
+  </div>
+  <div class="nav-item" onclick="showPage('policy')">
+    <span class="icon">📜</span> Policy Rules
+  </div>
+  <div class="nav-item" onclick="showPage('circuit')">
+    <span class="icon">⚡</span> Circuit Breaker
+  </div>
+  <div class="nav-item" onclick="showPage('logs')">
+    <span class="icon">🖥️</span> System Logs
+  </div>
+
+  <div class="nav-status">
+    <div style="display:flex;align-items:center;font-size:12px;">
+      <span class="status-dot" id="nav-dot"></span>
+      <span id="nav-status-text" style="color:var(--muted)">Connecting…</span>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="nav-uptime">—</div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">📊 Dashboard</div>
+    <div class="topbar-right">
+      <div class="api-url" id="api-url-display">http://localhost:8000</div>
+      <div id="connection-badge" class="badge-offline">● Offline</div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: DASHBOARD ══════════════════════════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">System Dashboard</div>
+    <div class="page-sub">Live telemetry from the NexusScale Compliance Engine pipeline</div>
+
+    <!-- Stat Cards -->
+    <div class="grid-4" style="margin-bottom:20px;">
+      <div class="stat-card" style="--accent-a:var(--primary);">
+        <div class="stat-icon">📥</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Requests</div>
+        <div class="stat-delta up" id="stat-uptime-badge">—</div>
+      </div>
+      <div class="stat-card" style="--accent-a:var(--success);">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="stat-approved" style="color:var(--success)">—</div>
+        <div class="stat-label">Approved</div>
+        <div class="stat-delta up" id="stat-approve-rate">—</div>
+      </div>
+      <div class="stat-card" style="--accent-a:var(--warning);">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-value" id="stat-flagged" style="color:var(--warning)">—</div>
+        <div class="stat-label">Flagged</div>
+        <div class="stat-delta" id="stat-flag-rate" style="color:var(--muted)">—</div>
+      </div>
+      <div class="stat-card" style="--accent-a:var(--info);">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value" id="stat-latency" style="color:var(--info)">—</div>
+        <div class="stat-label">Avg Latency (ms)</div>
+        <div class="stat-delta" style="color:var(--muted)">Pipeline end-to-end</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Volume Chart -->
+      <div class="card">
+        <div class="card-title">Request Volume (last 20)</div>
+        <div class="chart-wrap"><canvas id="chart-volume"></canvas></div>
+      </div>
+
+      <!-- Pipeline Status -->
+      <div class="card">
+        <div class="card-title">Pipeline Status</div>
+        <div id="pipeline-status-list" style="display:flex;flex-direction:column;gap:10px;padding-top:4px;">
+          <div style="color:var(--muted);font-size:13px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title">Recent Transactions</div>
+        <div style="overflow-x:auto;">
+          <table class="audit-table" style="margin-top:4px;">
+            <thead>
+              <tr>
+                <th>Trace ID</th>
+                <th>Department</th>
+                <th>Amount</th>
+                <th>Limit</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="recent-table-body">
+              <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:24px;">No requests yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: SUBMIT EXPENSE ═════════════════════════════════════════════ -->
+  <div class="page" id="page-submit">
+    <div class="page-title">Submit Expense</div>
+    <div class="page-sub">Construct and submit an expense payload to the compliance pipeline</div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Expense Payload</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Department *</label>
+            <select class="form-select" id="f-department">
+              <option value="Engineering">Engineering</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Sales">Sales</option>
+              <option value="Finance">Finance</option>
+              <option value="Executive">Executive</option>
+              <option value="HR">HR</option>
+              <option value="">⚠ Empty (Test C)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="f-category">
+              <option value="meals">Meals</option>
+              <option value="travel">Travel</option>
+              <option value="accommodation">Accommodation</option>
+              <option value="software">Software</option>
+              <option value="equipment">Equipment</option>
+              <option value="training">Training</option>
+              <option value="entertainment">Entertainment</option>
+              <option value="miscellaneous">Miscellaneous</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Amount (USD) *</label>
+            <input class="form-input" type="number" step="0.01" min="0.01" id="f-amount" value="42.50" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <input class="form-input" id="f-currency" value="USD" placeholder="USD" maxlength="3" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Employee ID</label>
+            <input class="form-input" id="f-employee-id" value="ENG-001" placeholder="ENG-001" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employee Email</label>
+            <input class="form-input" id="f-email" value="alice@nexusscale.io" placeholder="alice@nexusscale.io" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-input" id="f-description" value="Team lunch" placeholder="Expense description…" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex;justify-content:space-between;">
+            <span>Session Key *</span>
+            <button class="btn btn-ghost btn-sm" onclick="generateKey()" id="gen-key-btn">🔑 Generate</button>
+          </label>
+          <input class="form-input" id="f-session-key" placeholder="Click Generate to create a valid HMAC key…" style="font-family:var(--font-mono);font-size:11px;" />
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn btn-primary" onclick="submitExpense()" id="submit-btn">
+            <span>📤 Submit Expense</span>
+          </button>
+          <button class="btn btn-ghost" onclick="clearForm()">↺ Reset</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Quick Presets</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-success" onclick="loadPreset('a')" style="justify-content:flex-start;">
+              ✅ Test A — Engineering $42.50 → APPROVED
+            </button>
+            <button class="btn btn-warning" onclick="loadPreset('b')" style="justify-content:flex-start;color:#000;">
+              🚨 Test B — Marketing $120.00 → FLAGGED
+            </button>
+            <button class="btn btn-danger" onclick="loadPreset('c')" style="justify-content:flex-start;">
+              ❌ Test C — Empty Dept → HTTP 422
+            </button>
+            <button class="btn btn-ghost" onclick="loadPreset('escalate')" style="justify-content:flex-start;">
+              🚨🚨 Marketing $350.00 → FLAGGED + ESCALATE
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Response</div>
+          <div id="submit-result" class="result-panel"></div>
+          <div id="submit-placeholder" style="color:var(--muted);font-size:13px;padding:12px 0;">
+            Submit a payload to see the compliance engine response here.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TEST RUNNER ════════════════════════════════════════════════ -->
+  <div class="page" id="page-test-runner">
+    <div class="page-title">Test Runner</div>
+    <div class="page-sub">Execute the three canonical test vectors against the live compliance pipeline</div>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="runAllTests()">▶ Run All Tests</button>
+      <button class="btn btn-ghost" onclick="clearAllResults()">↺ Clear Results</button>
+      <div id="test-summary" style="display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted);"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:20px;">
+      <!-- Test A -->
+      <div class="test-card test-a">
+        <span class="test-badge" style="background:rgba(16,185,129,.15);color:var(--success);">Test Case A</span>
+        <div class="test-title">✅ Strict Approval Path</div>
+        <div class="test-desc">Engineering department submits a $42.50 expense. System matches against the $50.00 policy limit, integer comparison passes (4250 cents ≤ 5000 cents), and outputs APPROVED with zero variance.</div>
+        <div class="test-params">
+          <code>Department : Engineering</code>
+          <code>Amount     : $42.50  (4250 cents)</code>
+          <code>Limit      : $50.00  (5000 cents)</code>
+          <code>Expected   : APPROVED | variance=$0.00 | no notification</code>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-success btn-sm" onclick="runTest('a')" id="run-test-a">▶ Run Test A</button>
+          <span id="test-a-status" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div class="test-result" id="result-a"></div>
+      </div>
+
+      <!-- Test B -->
+      <div class="test-card test-b">
+        <span class="test-badge" style="background:rgba(245,158,11,.15);color:var(--warning);">Test Case B</span>
+        <div class="test-title">🚨 Strict Compliance Flagging Path</div>
+        <div class="test-desc">Marketing department submits a $120.00 expense. System catches the $70.00 policy variance (12000 > 5000 cents), skips DB persistence, and routes the execution thread to ResolutionCommunicator for Slack/Teams notification.</div>
+        <div class="test-params">
+          <code>Department : Marketing</code>
+          <code>Amount     : $120.00  (12000 cents)</code>
+          <code>Limit      : $50.00   (5000 cents)</code>
+          <code>Expected   : FLAGGED  | variance=$70.00 | notification dispatched</code>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-warning btn-sm" onclick="runTest('b')" id="run-test-b" style="color:#000;">▶ Run Test B</button>
+          <span id="test-b-status" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div class="test-result" id="result-b"></div>
+      </div>
+
+      <!-- Test C -->
+      <div class="test-card test-c">
+        <span class="test-badge" style="background:rgba(239,68,68,.15);color:var(--danger);">Test Case C</span>
+        <div class="test-title">🔐 Security & Validation Failure Path</div>
+        <div class="test-desc">Payload submitted with an empty department string. The system security gate intercepts the blank department at the supervisor preflight check, skips the MCP layer entirely, and returns HTTP 422 with a structured error envelope.</div>
+        <div class="test-params">
+          <code>Department : ""  (empty string)</code>
+          <code>Session Key: ""  (absent)</code>
+          <code>Expected   : HTTP 422 | DEPARTMENT_EMPTY | field_errors populated</code>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-danger btn-sm" onclick="runTest('c')" id="run-test-c">▶ Run Test C</button>
+          <span id="test-c-status" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div class="test-result" id="result-c"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: AUDIT TRAIL ════════════════════════════════════════════════ -->
+  <div class="page" id="page-audit">
+    <div class="page-title">Audit Trail</div>
+    <div class="page-sub">Immutable append-only event log — every state transition recorded</div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <input class="form-input" id="audit-trace-input" placeholder="Trace ID (UUID)…" style="max-width:380px;font-family:var(--font-mono);" />
+      <button class="btn btn-primary" onclick="queryAudit()">🔍 Query Trace</button>
+      <button class="btn btn-ghost" onclick="loadRecentAudit()">📋 Recent Transactions</button>
+    </div>
+
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Trace ID</th>
+              <th>Department</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>HTTP</th>
+              <th>Latency</th>
+              <th>Notified</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody">
+            <tr><td colspan="8" style="color:var(--muted);text-align:center;padding:32px;">Click "Recent Transactions" to load events</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: AGENTS ══════════════════════════════════════════════════════ -->
+  <div class="page" id="page-agents">
+    <div class="page-title">Agent Monitor</div>
+    <div class="page-sub">Real-time metrics for each agent in the Supervisor-Worker pipeline</div>
+
+    <div class="grid-3" id="agent-cards">
+      <div class="agent-card">
+        <span class="agent-role-badge role-supervisor">Supervisor</span>
+        <div class="agent-name">ExpenseAuditorAgent</div>
+        <div class="agent-persona">Financial Ingress Supervisor</div>
+        <div class="agent-metric"><span class="agent-metric-label">Run Count</span><span class="agent-metric-value" id="ag-aud-runs">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Errors</span><span class="agent-metric-value" id="ag-aud-errs" style="color:var(--danger)">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Avg Latency</span><span class="agent-metric-value" id="ag-aud-lat">—</span></div>
+      </div>
+      <div class="agent-card" style="--agent-color:rgba(16,185,129,.15);">
+        <span class="agent-role-badge role-worker">Worker</span>
+        <div class="agent-name">PolicyEvaluatorWorker</div>
+        <div class="agent-persona">Corporate Policy Compliance Evaluator</div>
+        <div class="agent-metric"><span class="agent-metric-label">Run Count</span><span class="agent-metric-value" id="ag-pol-runs">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Errors</span><span class="agent-metric-value" id="ag-pol-errs" style="color:var(--danger)">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Avg Latency</span><span class="agent-metric-value" id="ag-pol-lat">—</span></div>
+      </div>
+      <div class="agent-card" style="--agent-color:rgba(245,158,11,.15);">
+        <span class="agent-role-badge role-communicator">Communicator</span>
+        <div class="agent-name">ResolutionCommunicator</div>
+        <div class="agent-persona">Compliance Notification Dispatcher</div>
+        <div class="agent-metric"><span class="agent-metric-label">Run Count</span><span class="agent-metric-value" id="ag-res-runs">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Errors</span><span class="agent-metric-value" id="ag-res-errs" style="color:var(--danger)">—</span></div>
+        <div class="agent-metric"><span class="agent-metric-label">Avg Latency</span><span class="agent-metric-value" id="ag-res-lat">—</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="card">
+        <div class="card-title">Approval Rate</div>
+        <div style="display:flex;align-items:center;gap:20px;padding:8px 0;">
+          <div style="font-size:48px;font-weight:800;color:var(--success);" id="approval-pct">—%</div>
+          <div style="flex:1;">
+            <div class="progress-bar" style="margin-bottom:8px;">
+              <div class="progress-fill" id="approval-bar" style="background:linear-gradient(90deg,var(--success),#34d399);width:0%"></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);">Based on all processed requests this session</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Request Distribution</div>
+        <div class="chart-wrap"><canvas id="chart-dist"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: POLICY ══════════════════════════════════════════════════════ -->
+  <div class="page" id="page-policy">
+    <div class="page-title">Policy Rules</div>
+    <div class="page-sub">Corporate spending policy limits — loaded from config/policy_rules.json</div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <span style="font-size:13px;color:var(--muted);">Default Limit: </span>
+          <span id="policy-default" style="font-weight:700;font-size:15px;color:var(--primary);">—</span>
+          <span style="font-size:13px;color:var(--muted);margin-left:24px;">Version: </span>
+          <span id="policy-version" style="font-weight:600;font-size:13px;">—</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadPolicyRules()">↺ Refresh</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="policy-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Category</th>
+              <th>Limit (USD)</th>
+              <th>Escalation Threshold</th>
+              <th>Relative Limit</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="policy-tbody">
+            <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:32px;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: CIRCUIT BREAKER ════════════════════════════════════════════ -->
+  <div class="page" id="page-circuit">
+    <div class="page-title">Circuit Breaker</div>
+    <div class="page-sub">MCP database bridge fault protection — real-time state monitoring</div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Current State</div>
+        <div class="circuit-viz" id="circuit-viz">
+          <div class="circuit-node circuit-CLOSED" id="cn-closed">
+            <div class="node-icon">🟢</div>
+            <div>CLOSED</div>
+          </div>
+          <div class="circuit-arrow">→</div>
+          <div class="circuit-node circuit-OPEN" id="cn-open">
+            <div class="node-icon">🔴</div>
+            <div>OPEN</div>
+          </div>
+          <div class="circuit-arrow">→</div>
+          <div class="circuit-node circuit-HALF_OPEN" id="cn-half">
+            <div class="node-icon">🟡</div>
+            <div>HALF_OPEN</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:8px;">
+          <div style="font-size:28px;font-weight:800;" id="circuit-state-text">—</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="circuit-desc">Loading circuit state…</div>
+        </div>
+
+        <hr class="divider" />
+        <div style="display:flex;justify-content:center;">
+          <button class="btn btn-danger" onclick="resetCircuit()" id="circuit-reset-btn">⚡ Force Reset to CLOSED</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Circuit Metrics</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;" id="circuit-metrics">
+          <div style="color:var(--muted);font-size:13px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">State Machine</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px;">
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:16px;">
+          <div style="color:var(--success);font-weight:700;margin-bottom:8px;">🟢 CLOSED (Normal)</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">All MCP calls go through normally. Failures are counted. When <code style="font-family:var(--font-mono);color:#818cf8;">failure_count ≥ threshold (5)</code>, transitions to OPEN.</div>
+        </div>
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;">
+          <div style="color:var(--danger);font-weight:700;margin-bottom:8px;">🔴 OPEN (Fast-Fail)</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">All calls immediately raise <code style="font-family:var(--font-mono);color:#818cf8;">MCPCircuitOpenError → HTTP 503</code>. After <code style="font-family:var(--font-mono);color:#818cf8;">30s recovery timeout</code>, transitions to HALF_OPEN.</div>
+        </div>
+        <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:16px;">
+          <div style="color:var(--warning);font-weight:700;margin-bottom:8px;">🟡 HALF_OPEN (Probe)</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">One probe call allowed. Success × 2 → CLOSED. Failure → back to OPEN. Prevents thundering herd on recovery.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: LOGS ════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-logs">
+    <div class="page-title">System Logs</div>
+    <div class="page-sub">Live log stream via WebSocket — all agent, MCP, and security events</div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary" id="log-connect-btn" onclick="connectLogStream()">📡 Connect Stream</button>
+      <button class="btn btn-ghost" onclick="clearLogs()">🗑 Clear</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-left:auto;cursor:pointer;">
+        <input type="checkbox" id="log-autoscroll" checked /> Auto-scroll
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;">
+        Level:
+        <select class="form-select" id="log-filter" style="width:auto;padding:5px 8px;font-size:12px;" onchange="filterLogs()">
+          <option value="ALL">ALL</option>
+          <option value="INFO">INFO+</option>
+          <option value="WARNING">WARNING+</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+      </label>
+      <span id="log-ws-status" style="font-size:12px;color:var(--muted);">● Disconnected</span>
+    </div>
+
+    <div class="log-terminal" id="log-terminal">
+      <div class="log-line" style="color:rgba(255,255,255,.3);font-style:italic;">
+        Connect the stream to see live log output from all pipeline modules…
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+
+const API = (() => {
+  const savedUrl = localStorage.getItem('nexus_api_url') || 'http://localhost:8000';
+  document.getElementById('api-url-display').textContent = savedUrl;
+  document.getElementById('api-url-display').addEventListener('click', () => {
+    const url = prompt('API Base URL:', savedUrl);
+    if (url) { localStorage.setItem('nexus_api_url', url.replace(/\/$/, '')); location.reload(); }
+  });
+  return savedUrl.replace(/\/$/, '');
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PAGE_TITLES = {
+  dashboard: '📊 Dashboard', submit: '📤 Submit Expense',
+  'test-runner': '🧪 Test Runner', audit: '📋 Audit Trail',
+  agents: '🤖 Agent Monitor', policy: '📜 Policy Rules',
+  circuit: '⚡ Circuit Breaker', logs: '🖥️ System Logs',
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`.nav-item[onclick*="${id}"]`).classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
+  if (id === 'policy')  loadPolicyRules();
+  if (id === 'circuit') refreshCircuit();
+  if (id === 'agents')  refreshAgents();
+  if (id === 'audit')   loadRecentAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function api(method, path, body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const resp = await fetch(API + path, opts);
+  const data = await resp.json();
+  return { ok: resp.ok, status: resp.status, data };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const volumeChart = new Chart(document.getElementById('chart-volume').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: Array(20).fill(''),
+    datasets: [
+      { label: 'Approved', data: Array(20).fill(0), backgroundColor: 'rgba(16,185,129,.6)', borderRadius: 4 },
+      { label: 'Flagged',  data: Array(20).fill(0), backgroundColor: 'rgba(245,158,11,.6)',  borderRadius: 4 },
+      { label: 'Error',    data: Array(20).fill(0), backgroundColor: 'rgba(239,68,68,.5)',   borderRadius: 4 },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: 'rgba(255,255,255,.6)', font: { size: 11 } } } },
+    scales: {
+      x: { stacked: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: 'rgba(255,255,255,.4)', maxRotation: 0 } },
+      y: { stacked: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: 'rgba(255,255,255,.4)', stepSize: 1 } },
+    },
+  },
+});
+
+const distChart = new Chart(document.getElementById('chart-dist').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Approved', 'Flagged', 'Errors'],
+    datasets: [{ data: [0, 0, 0], backgroundColor: ['rgba(16,185,129,.8)', 'rgba(245,158,11,.8)', 'rgba(239,68,68,.7)'], borderWidth: 0, hoverOffset: 6 }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '72%',
+    plugins: { legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.6)', font: { size: 11 }, padding: 12 } } },
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD REFRESH LOOP
+// ═══════════════════════════════════════════════════════════════════════════
+
+let isOnline = false;
+let recentData = [];
+
+async function refreshDashboard() {
+  try {
+    const [statsRes, healthRes] = await Promise.all([
+      api('GET', '/stats'), api('GET', '/health'),
+    ]);
+    isOnline = statsRes.ok;
+    updateConnectionBadge(isOnline);
+
+    if (statsRes.ok) {
+      const s = statsRes.data;
+      setText('stat-total',    s.total_requests);
+      setText('stat-approved', s.approved);
+      setText('stat-flagged',  s.flagged);
+      setText('stat-latency',  s.avg_processing_ms);
+      setText('stat-approve-rate', s.total_requests > 0 ? `${s.approval_rate_pct}% approval rate` : 'No requests yet');
+      setText('stat-flag-rate', s.total_requests > 0 ? `${(100 - s.approval_rate_pct).toFixed(1)}% flagged` : '');
+
+      // Compute uptime
+      const started = new Date(s.started_at);
+      const mins = Math.floor((Date.now() - started) / 60000);
+      setText('stat-uptime-badge', `Running ${mins}m`);
+      setText('nav-uptime', `Up ${mins}m`);
+
+      recentData = s.recent_requests || [];
+      renderRecentTable(recentData);
+      updateVolumeChart(recentData);
+      updateDistChart(s);
+    }
+
+    if (healthRes.ok) {
+      renderPipelineStatus(healthRes.data);
+    }
+  } catch (e) {
+    isOnline = false;
+    updateConnectionBadge(false);
+  }
+}
+
+function updateConnectionBadge(online) {
+  const badge = document.getElementById('connection-badge');
+  const dot   = document.getElementById('nav-dot');
+  const txt   = document.getElementById('nav-status-text');
+  badge.textContent = online ? '● Online' : '● Offline';
+  badge.className = online ? 'badge-online' : 'badge-offline';
+  dot.className   = 'status-dot' + (online ? '' : ' offline');
+  txt.textContent = online ? 'Connected' : 'Disconnected';
+}
+
+function updateVolumeChart(recent) {
+  const last20 = [...recent].reverse().slice(-20);
+  volumeChart.data.labels = last20.map((_, i) => i + 1);
+  volumeChart.data.datasets[0].data = last20.map(r => r.status === 'APPROVED' ? 1 : 0);
+  volumeChart.data.datasets[1].data = last20.map(r => r.status === 'FLAGGED'  ? 1 : 0);
+  volumeChart.data.datasets[2].data = last20.map(r => r.status === 'ERROR'    ? 1 : 0);
+  volumeChart.update('none');
+}
+
+function updateDistChart(s) {
+  distChart.data.datasets[0].data = [s.approved, s.flagged, s.errors];
+  distChart.update('none');
+  setText('approval-pct', s.total_requests > 0 ? `${s.approval_rate_pct}%` : '—%');
+  const bar = document.getElementById('approval-bar');
+  if (bar) bar.style.width = s.total_requests > 0 ? `${s.approval_rate_pct}%` : '0%';
+}
+
+function renderPipelineStatus(health) {
+  const agents = health.agents || {};
+  const list = document.getElementById('pipeline-status-list');
+  const items = [
+    { name: 'Pipeline', ok: health.pipeline?.initialized },
+    { name: 'MCP Circuit', ok: health.pipeline?.mcp_circuit?.state === 'CLOSED', extra: health.pipeline?.mcp_circuit?.state || 'N/A' },
+    { name: 'ExpenseAuditorAgent',     ok: !!agents['ExpenseAuditorAgent'] },
+    { name: 'PolicyEvaluatorWorker',   ok: !!agents['PolicyEvaluatorWorker'] },
+    { name: 'ResolutionCommunicator',  ok: !!agents['ResolutionCommunicator'] },
+  ];
+  list.innerHTML = items.map(it => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;">${it.name}</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        ${it.extra ? `<span style="font-size:11px;color:var(--muted);">${it.extra}</span>` : ''}
+        <span style="width:10px;height:10px;border-radius:50%;background:${it.ok ? 'var(--success)' : 'var(--danger)'}"></span>
+      </span>
+    </div>
+  `).join('');
+}
+
+function renderRecentTable(rows) {
+  const tbody = document.getElementById('recent-table-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:24px;">No requests yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="trace-id" onclick="gotoAudit('${r.trace_id}')" title="${r.trace_id}">${r.trace_id.slice(0,8)}…</td>
+      <td>${r.department || '<span style="color:var(--danger)">empty</span>'}</td>
+      <td>$${(r.amount||0).toFixed(2)}</td>
+      <td>${r.limit ? '$'+r.limit.toFixed(2) : '—'}</td>
+      <td><span class="badge badge-${(r.status||'').toLowerCase()}">${r.status || '?'}</span></td>
+      <td>${r.processing_ms || 0}ms</td>
+      <td style="color:var(--muted);">${new Date(r.timestamp).toLocaleTimeString()}</td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUBMIT EXPENSE
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function generateKey() {
+  const empId = document.getElementById('f-employee-id').value || 'ENG-001';
+  const btn = document.getElementById('gen-key-btn');
+  btn.textContent = '⏳';
+  try {
+    const res = await api('GET', `/generate-session-key?employee_id=${encodeURIComponent(empId)}`);
+    if (res.ok) {
+      document.getElementById('f-session-key').value = res.data.session_key;
+      showToast('Session key generated ✓', 'success');
+    } else {
+      showToast('Failed to generate key — is the server running?', 'error');
+    }
+  } catch(e) {
+    showToast('Server unreachable', 'error');
+  } finally {
+    btn.textContent = '🔑 Generate';
+  }
+}
+
+async function submitExpense() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Submitting…';
+
+  const payload = {
+    department:     document.getElementById('f-department').value,
+    amount:         parseFloat(document.getElementById('f-amount').value),
+    category:       document.getElementById('f-category').value,
+    employee_id:    document.getElementById('f-employee-id').value || 'GUI-USER',
+    employee_email: document.getElementById('f-email').value,
+    session_key:    document.getElementById('f-session-key').value || 'invalid',
+    currency:       document.getElementById('f-currency').value || 'USD',
+    description:    document.getElementById('f-description').value,
+  };
+
+  const panel = document.getElementById('submit-result');
+  const placeholder = document.getElementById('submit-placeholder');
+
+  try {
+    const res = await api('POST', '/submit-expense', payload);
+    const statusClass = res.data.status === 'APPROVED' ? 'approved' : (res.status >= 400 ? 'error' : 'flagged');
+    panel.className = `result-panel show result-${statusClass}`;
+    panel.textContent = JSON.stringify(res.data, null, 2);
+    placeholder.style.display = 'none';
+
+    if (res.ok) {
+      const status = res.data.status;
+      showToast(`${status === 'APPROVED' ? '✅' : '🚨'} ${status} — ${res.data.message?.slice(0,60)}`, status === 'APPROVED' ? 'success' : 'warning');
+    } else {
+      showToast(`❌ HTTP ${res.status}: ${res.data.error || 'Error'}`, 'error');
+    }
+  } catch (e) {
+    panel.className = 'result-panel show result-error';
+    panel.textContent = '// Connection failed — is the server running?\n' + e.message;
+    placeholder.style.display = 'none';
+    showToast('Connection failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>📤 Submit Expense</span>';
+  }
+}
+
+function loadPreset(preset) {
+  const presets = {
+    a: { department: 'Engineering', amount: 42.50, category: 'meals', employee_id: 'ENG-001', employee_email: 'alice@nexusscale.io', description: 'Team lunch' },
+    b: { department: 'Marketing',   amount: 120.00, category: 'meals', employee_id: 'MKT-002', employee_email: 'bob@nexusscale.io', description: 'Client entertainment' },
+    c: { department: '', amount: 75.00, category: 'miscellaneous', employee_id: 'UNKNOWN', employee_email: '', description: '' },
+    escalate: { department: 'Marketing', amount: 350.00, category: 'entertainment', employee_id: 'MKT-002', employee_email: 'bob@nexusscale.io', description: 'Large client event' },
+  };
+  const p = presets[preset];
+  if (!p) return;
+  document.getElementById('f-department').value    = p.department;
+  document.getElementById('f-amount').value        = p.amount;
+  document.getElementById('f-category').value      = p.category;
+  document.getElementById('f-employee-id').value   = p.employee_id;
+  document.getElementById('f-email').value         = p.employee_email;
+  document.getElementById('f-description').value   = p.description;
+  document.getElementById('f-session-key').value   = '';
+  if (p.department) generateKey();
+  showToast('Preset loaded — click Generate then Submit', 'info');
+}
+
+function clearForm() {
+  ['f-department','f-amount','f-category','f-employee-id','f-email','f-session-key','f-description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else if (id === 'f-amount') el.value = '';
+    else el.value = '';
+  });
+  document.getElementById('submit-result').className = 'result-panel';
+  document.getElementById('submit-placeholder').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST RUNNER
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TEST_VECTORS = {
+  a: { department: 'Engineering', amount: 42.50, category: 'meals', employee_id: 'ENG-001', employee_email: 'alice@nexusscale.io', description: 'Test A payload' },
+  b: { department: 'Marketing',   amount: 120.00, category: 'meals', employee_id: 'MKT-002', employee_email: 'bob@nexusscale.io',  description: 'Test B payload' },
+  c: { department: '', amount: 75.00, category: 'miscellaneous', employee_id: 'UNKNOWN', employee_email: '', session_key: '', description: 'Test C payload' },
+};
+
+const TEST_ASSERTIONS = {
+  a: (data, status) => status === 200 && data.status === 'APPROVED' && data.variance_usd === 0 && !data.notification_dispatched,
+  b: (data, status) => status === 200 && data.status === 'FLAGGED' && data.variance_usd === 70,
+  c: (data, status) => status === 422 && data.error === 'DEPARTMENT_EMPTY',
+};
+
+async function runTest(id) {
+  const btn    = document.getElementById('run-test-' + id);
+  const result = document.getElementById('result-' + id);
+  const status = document.getElementById('test-' + id + '-status');
+
+  btn.disabled = true;
+  status.innerHTML = '<span class="running-indicator">⏳ Running…</span>';
+  result.className = 'test-result show';
+  result.innerHTML = '<span class="running-indicator">Submitting test payload…</span>';
+
+  let payload = { ...TEST_VECTORS[id] };
+
+  // Generate a real session key unless Test C (no key)
+  if (id !== 'c') {
+    try {
+      const keyRes = await api('GET', `/generate-session-key?employee_id=${encodeURIComponent(payload.employee_id)}`);
+      if (keyRes.ok) payload.session_key = keyRes.data.session_key;
+    } catch(e) {}
+  }
+
+  const t0 = Date.now();
+  try {
+    const res = await api('POST', '/submit-expense', payload);
+    const elapsed = Date.now() - t0;
+    const passed = TEST_ASSERTIONS[id]?.(res.data, res.status) ?? true;
+
+    const icon = passed ? '✅ PASS' : '❌ FAIL';
+    const color = passed ? 'var(--success)' : 'var(--danger)';
+
+    status.innerHTML = `<span style="color:${color};font-weight:700;">${icon}</span> <span style="color:var(--muted);">${elapsed}ms</span>`;
+    result.innerHTML = `<span style="${passed ? 'color:var(--success)' : 'color:var(--danger)'}">${icon} (${elapsed}ms)\n</span>` +
+      JSON.stringify(res.data, null, 2);
+
+    showToast(`Test ${id.toUpperCase()}: ${icon}`, passed ? 'success' : 'error');
+  } catch(e) {
+    status.innerHTML = `<span class="fail-indicator">⚠ Connection failed</span>`;
+    result.innerHTML = '// Failed to connect to API\n' + e.message;
+    showToast(`Test ${id.toUpperCase()} failed — server unreachable`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runAllTests() {
+  document.getElementById('test-summary').textContent = '⏳ Running all tests…';
+  await runTest('a'); await new Promise(r => setTimeout(r, 400));
+  await runTest('b'); await new Promise(r => setTimeout(r, 400));
+  await runTest('c');
+  document.getElementById('test-summary').textContent = '✅ All 3 test vectors executed';
+  showToast('All test vectors executed', 'info');
+}
+
+function clearAllResults() {
+  ['a','b','c'].forEach(id => {
+    document.getElementById('result-' + id).className = 'test-result';
+    document.getElementById('test-' + id + '-status').textContent = '';
+  });
+  document.getElementById('test-summary').textContent = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUDIT TRAIL
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadRecentAudit() {
+  try {
+    const res = await api('GET', '/audit/recent?limit=30');
+    if (res.ok) renderAuditTable(res.data.events || []);
+  } catch(e) { showToast('Could not load audit events', 'error'); }
+}
+
+async function queryAudit() {
+  const traceId = document.getElementById('audit-trace-input').value.trim();
+  if (!traceId) { showToast('Enter a trace ID first', 'warning'); return; }
+  try {
+    const res = await api('GET', `/audit/${traceId}`);
+    if (res.ok) renderAuditTable(res.data.events || []);
+    else showToast(`Trace not found: ${traceId}`, 'error');
+  } catch(e) { showToast('Query failed', 'error'); }
+}
+
+function renderAuditTable(rows) {
+  const tbody = document.getElementById('audit-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:32px;">No events found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="color:var(--muted);">${new Date(r.timestamp).toLocaleTimeString()}</td>
+      <td class="trace-id" onclick="gotoAuditTrace('${r.trace_id}')" title="${r.trace_id}">${(r.trace_id||'').slice(0,10)}…</td>
+      <td>${r.department || '—'}</td>
+      <td>${r.amount != null ? '$'+parseFloat(r.amount).toFixed(2) : '—'}</td>
+      <td><span class="badge badge-${(r.status||'').toLowerCase()}">${r.status || '—'}</span></td>
+      <td><span style="color:${r.http_status >= 400 ? 'var(--danger)' : 'var(--success)'}">${r.http_status || '—'}</span></td>
+      <td>${r.processing_ms || 0}ms</td>
+      <td>${r.notification_dispatched ? '🔔' : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function gotoAudit(traceId) {
+  showPage('audit');
+  document.getElementById('audit-trace-input').value = traceId;
+  queryAudit();
+}
+
+function gotoAuditTrace(traceId) {
+  document.getElementById('audit-trace-input').value = traceId;
+  queryAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENT MONITOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function refreshAgents() {
+  try {
+    const [metricsRes, statsRes] = await Promise.all([
+      api('GET', '/metrics'), api('GET', '/stats'),
+    ]);
+    if (metricsRes.ok) {
+      const agents = metricsRes.data.agents || {};
+      const setAg = (prefix, name) => {
+        const ag = agents[name] || {};
+        setText(`ag-${prefix}-runs`, ag.run_count ?? '—');
+        setText(`ag-${prefix}-errs`, ag.error_count ?? '—');
+        setText(`ag-${prefix}-lat`,  ag.avg_latency_ms != null ? `${ag.avg_latency_ms}ms` : '—');
+      };
+      setAg('aud', 'ExpenseAuditorAgent');
+      setAg('pol', 'PolicyEvaluatorWorker');
+      setAg('res', 'ResolutionCommunicator');
+    }
+    if (statsRes.ok) updateDistChart(statsRes.data);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POLICY RULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadPolicyRules() {
+  try {
+    const res = await api('GET', '/policy-rules');
+    if (!res.ok) { showToast('Policy rules not found', 'error'); return; }
+    const data = res.data;
+    setText('policy-default', `$${parseFloat(data.default_limit_usd).toFixed(2)}`);
+    setText('policy-version', data.version || '1.0.0');
+    const maxLimit = Math.max(...(data.rules || []).map(r => parseFloat(r.limit_usd)));
+    const tbody = document.getElementById('policy-tbody');
+    tbody.innerHTML = (data.rules || []).map(r => {
+      const pct = Math.round(parseFloat(r.limit_usd) / maxLimit * 100);
+      const esc = r.escalation_threshold_usd ? `$${parseFloat(r.escalation_threshold_usd).toFixed(2)}` : '—';
+      return `<tr>
+        <td style="font-weight:600">${r.department}</td>
+        <td><span class="badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.2);">${r.category === '*' ? 'All' : r.category}</span></td>
+        <td style="font-weight:700;color:var(--primary)">$${parseFloat(r.limit_usd).toFixed(2)}</td>
+        <td style="color:var(--warning);">${esc}</td>
+        <td>
+          <div class="limit-bar-wrap">
+            <div class="limit-bar"><div class="limit-bar-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:11px;color:var(--muted);min-width:32px;">${pct}%</span>
+          </div>
+        </td>
+        <td style="color:var(--muted);font-size:12px;">${r.description || '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { showToast('Could not load policy rules', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function refreshCircuit() {
+  try {
+    const res = await api('GET', '/circuit-state');
+    if (!res.ok) return;
+    const d = res.data;
+    const state = d.state || d.circuit || 'DISCONNECTED';
+
+    setText('circuit-state-text', state);
+    const desc = {
+      CLOSED:      '✅ All MCP calls going through normally. Counting failures.',
+      OPEN:        '🔴 Fast-fail mode — all calls return HTTP 503 immediately.',
+      HALF_OPEN:   '🟡 Probe mode — one call allowed to test recovery.',
+      DISCONNECTED:'⚠️  MCP client not connected to bridge.',
+    };
+    setText('circuit-desc', desc[state] || '');
+
+    // Highlight active node
+    ['CLOSED','OPEN','HALF_OPEN'].forEach(s => {
+      const el = document.getElementById(`cn-${s.toLowerCase().replace('_','-')}`);
+      if (el) el.classList.toggle('active', state === s);
+    });
+    document.getElementById('cn-half').id = 'cn-half_open'; // fix mapping
+    const nodeMap = { CLOSED: 'cn-closed', OPEN: 'cn-open', HALF_OPEN: 'cn-half_open' };
+    Object.entries(nodeMap).forEach(([s, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.opacity = state === s ? '1' : '0.3';
+    });
+
+    const metricsEl = document.getElementById('circuit-metrics');
+    metricsEl.innerHTML = [
+      ['State',              `<span class="badge badge-${state.toLowerCase().replace('_','-')}">${state}</span>`],
+      ['Failure Count',      d.failure_count ?? '—'],
+      ['Failure Threshold',  d.failure_threshold ?? '5'],
+      ['Recovery Timeout',   `${d.recovery_timeout_seconds ?? 30}s`],
+      ['Last Failure',       d.last_failure_at ? new Date(d.last_failure_at).toLocaleString() : '—'],
+    ].map(([label, val]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--muted);">${label}</span>
+        <span style="font-size:13px;font-weight:600;">${val}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function resetCircuit() {
+  const btn = document.getElementById('circuit-reset-btn');
+  btn.disabled = true;
+  try {
+    const res = await api('POST', '/admin/circuit-reset');
+    if (res.ok) {
+      showToast('✅ Circuit breaker reset to CLOSED', 'success');
+      refreshCircuit();
+    } else {
+      showToast('Reset failed: ' + (res.data.detail || 'Unknown error'), 'error');
+    }
+  } catch(e) {
+    showToast('Could not reach server', 'error');
+  } finally { btn.disabled = false; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOG STREAM (WebSocket)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let logWs = null;
+let allLogs = [];
+const MAX_LOG_LINES = 500;
+
+function connectLogStream() {
+  const btn = document.getElementById('log-connect-btn');
+  const statusEl = document.getElementById('log-ws-status');
+
+  if (logWs && logWs.readyState === WebSocket.OPEN) {
+    logWs.close();
+    btn.textContent = '📡 Connect Stream';
+    statusEl.textContent = '● Disconnected';
+    statusEl.style.color = 'var(--muted)';
+    return;
+  }
+
+  const wsUrl = API.replace('http', 'ws') + '/ws/logs';
+  logWs = new WebSocket(wsUrl);
+  btn.textContent = '⏸ Disconnect';
+  statusEl.textContent = '⏳ Connecting…';
+
+  logWs.onopen = () => {
+    statusEl.textContent = '● Connected';
+    statusEl.style.color = 'var(--success)';
+    appendLog({ t: new Date().toLocaleTimeString(), level: 'INFO', name: 'dashboard', msg: '📡 WebSocket log stream connected' });
+  };
+  logWs.onmessage = (e) => {
+    try { appendLog(JSON.parse(e.data)); } catch(err) {}
+  };
+  logWs.onclose = () => {
+    statusEl.textContent = '● Disconnected';
+    statusEl.style.color = 'var(--muted)';
+    btn.textContent = '📡 Connect Stream';
+  };
+  logWs.onerror = () => {
+    statusEl.textContent = '● Error';
+    statusEl.style.color = 'var(--danger)';
+    showToast('WebSocket connection failed — is the server running?', 'error');
+  };
+}
+
+function appendLog(entry) {
+  const filter = document.getElementById('log-filter').value;
+  const levels = { ALL: 0, DEBUG: 0, INFO: 1, WARNING: 2, ERROR: 3 };
+  const entryLevel = levels[entry.level] ?? 0;
+  const filterLevel = levels[filter] ?? 0;
+  if (entryLevel < filterLevel) return;
+
+  allLogs.push(entry);
+  if (allLogs.length > MAX_LOG_LINES) allLogs.shift();
+
+  const terminal = document.getElementById('log-terminal');
+  const line = document.createElement('div');
+  line.className = `log-line log-${entry.level}`;
+  line.innerHTML = `
+    <span class="log-t">${entry.t || ''}</span>
+    <span class="log-level">${entry.level || ''}</span>
+    <span class="log-name">${(entry.name || '').slice(0,18)}</span>
+    <span class="log-msg">${escHtml(entry.msg || '')}</span>
+  `;
+  terminal.appendChild(line);
+
+  if (terminal.children.length > MAX_LOG_LINES) terminal.removeChild(terminal.firstChild);
+  if (document.getElementById('log-autoscroll').checked) terminal.scrollTop = terminal.scrollHeight;
+}
+
+function clearLogs() { allLogs = []; document.getElementById('log-terminal').innerHTML = ''; }
+
+function filterLogs() {
+  document.getElementById('log-terminal').innerHTML = '';
+  const filter = document.getElementById('log-filter').value;
+  const levels = { ALL: 0, DEBUG: 0, INFO: 1, WARNING: 2, ERROR: 3 };
+  const filterLevel = levels[filter] ?? 0;
+  allLogs.filter(e => (levels[e.level] ?? 0) >= filterLevel).forEach(appendLog);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val ?? '—';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTimer = null;
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  toast.innerHTML = `<span>${icons[type] || ''}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '.3s'; setTimeout(() => toast.remove(), 350); }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT & POLLING
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Initial load
+refreshDashboard();
+loadPolicyRules();
+
+// Polling loops
+setInterval(refreshDashboard, 4000);
+setInterval(refreshAgents,    5000);
+setInterval(refreshCircuit,   6000);
+
+// Show test badge
+document.getElementById('test-badge').style.display = 'inline';
+
+// Welcome toast
+setTimeout(() => showToast('NexusScale Control Panel ready', 'info'), 800);
+</script>
+</body>
+</html>

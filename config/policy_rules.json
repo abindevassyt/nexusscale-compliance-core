@@ -1,0 +1,96 @@
+{
+  "_comment": "NexusScale Corporate Expense Policy Rules — Version 1.0.0",
+  "_description": "Departmental spending limits. Resolution priority: exact match > dept wildcard > global default.",
+  "version": "1.0.0",
+  "default_limit_usd": 50.00,
+  "rules": [
+    {
+      "department": "Engineering",
+      "category": "*",
+      "limit_usd": 50.00,
+      "escalation_threshold_usd": 200.00,
+      "currency": "USD",
+      "description": "Engineering standard per-expense limit"
+    },
+    {
+      "department": "Engineering",
+      "category": "software",
+      "limit_usd": 500.00,
+      "escalation_threshold_usd": 2000.00,
+      "currency": "USD",
+      "description": "Engineering software purchases have elevated limit"
+    },
+    {
+      "department": "Engineering",
+      "category": "equipment",
+      "limit_usd": 1500.00,
+      "escalation_threshold_usd": 5000.00,
+      "currency": "USD",
+      "description": "Engineering hardware purchases"
+    },
+    {
+      "department": "Marketing",
+      "category": "*",
+      "limit_usd": 50.00,
+      "escalation_threshold_usd": 300.00,
+      "currency": "USD",
+      "description": "Marketing standard per-expense limit"
+    },
+    {
+      "department": "Marketing",
+      "category": "entertainment",
+      "limit_usd": 150.00,
+      "escalation_threshold_usd": 500.00,
+      "currency": "USD",
+      "description": "Marketing entertainment events have elevated limit"
+    },
+    {
+      "department": "Sales",
+      "category": "*",
+      "limit_usd": 75.00,
+      "escalation_threshold_usd": 400.00,
+      "currency": "USD",
+      "description": "Sales standard per-expense limit"
+    },
+    {
+      "department": "Sales",
+      "category": "meals",
+      "limit_usd": 100.00,
+      "escalation_threshold_usd": 250.00,
+      "currency": "USD",
+      "description": "Sales meal / client entertainment limit"
+    },
+    {
+      "department": "Finance",
+      "category": "*",
+      "limit_usd": 50.00,
+      "escalation_threshold_usd": 150.00,
+      "currency": "USD",
+      "description": "Finance conservative standard limit"
+    },
+    {
+      "department": "Executive",
+      "category": "*",
+      "limit_usd": 500.00,
+      "escalation_threshold_usd": 5000.00,
+      "currency": "USD",
+      "description": "Executive travel and business expenses"
+    },
+    {
+      "department": "HR",
+      "category": "*",
+      "limit_usd": 50.00,
+      "escalation_threshold_usd": 200.00,
+      "currency": "USD",
+      "description": "HR standard per-expense limit"
+    },
+    {
+      "department": "HR",
+      "category": "training",
+      "limit_usd": 300.00,
+      "escalation_threshold_usd": 1000.00,
+      "currency": "USD",
+      "description": "HR training and development elevated limit"
+    }
+  ]
+}

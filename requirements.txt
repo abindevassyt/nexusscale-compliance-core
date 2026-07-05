@@ -1,0 +1,54 @@
+# ─── Core Framework ───────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# ─── Agent Orchestration ──────────────────────────────────────────────────────
+google-adk==1.2.1
+
+# ─── MCP / JSON-RPC Transport ─────────────────────────────────────────────────
+mcp==1.9.4
+httpx==0.28.1
+websockets==14.1
+
+# ─── Async & Concurrency ──────────────────────────────────────────────────────
+anyio==4.7.0
+asyncio-throttle==1.0.2
+tenacity==9.0.0
+
+# ─── Security & Cryptography ──────────────────────────────────────────────────
+cryptography==44.0.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ─── Structured Logging ───────────────────────────────────────────────────────
+structlog==24.4.0
+python-json-logger==2.0.7
+rich==13.9.4
+
+# ─── Database & Event Sourcing ────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.36
+aiosqlite==0.20.0
+alembic==1.14.0
+
+# ─── Webhook / Notification Clients ──────────────────────────────────────────
+slack-sdk==3.33.4
+httpx==0.28.1
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-httpx==0.35.0
+pytest-cov==6.0.0
+respx==0.21.1
+faker==33.1.0
+
+# ─── Config & Environment ─────────────────────────────────────────────────────
+python-dotenv==1.0.1
+pyyaml==6.0.2
+
+# ─── Observability ────────────────────────────────────────────────────────────
+opentelemetry-sdk==1.29.0
+opentelemetry-instrumentation-fastapi==0.50b0
+prometheus-client==0.21.1

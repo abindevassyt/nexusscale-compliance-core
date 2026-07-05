@@ -1,0 +1,147 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  json:
+    class: pythonjsonlogger.jsonlogger.JsonFormatter
+    format: "%(asctime)s %(name)s %(levelname)s %(message)s %(correlation_id)s %(agent_name)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S"
+
+  rich_console:
+    (): rich.logging.RichHandler
+    rich_tracebacks: true
+    show_time: true
+
+  standard:
+    format: "%(asctime)s [%(levelname)-8s] [%(name)s] [trace=%(correlation_id)s] %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S"
+
+filters:
+  correlation_id_injector:
+    (): logging.Filter  # replaced at runtime by CorrelationIDFilter
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+    stream: ext://sys.stdout
+
+  json_file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: logs/nexusscale.log
+    maxBytes: 10485760   # 10 MB
+    backupCount: 5
+    encoding: utf-8
+
+  audit_file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: logs/audit.log
+    maxBytes: 52428800   # 50 MB
+    backupCount: 20
+    encoding: utf-8
+
+  error_file:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: json
+    filename: logs/errors.log
+    maxBytes: 10485760   # 10 MB
+    backupCount: 10
+    encoding: utf-8
+
+loggers:
+  # Root application logger
+  nexusscale:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  # Agent-specific loggers
+  agents:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  agents.expense_auditor:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  agents.policy_evaluator:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  agents.resolution_communicator:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  # MCP Transport logger
+  mcp:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  mcp.client:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  # Core module loggers
+  core:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  core.security:
+    level: INFO
+    handlers: [console, json_file, error_file]
+    propagate: false
+
+  core.circuit_breaker:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  # Audit logger — extra retention
+  core.audit_trail:
+    level: INFO
+    handlers: [audit_file]
+    propagate: true
+
+  # Orchestrator
+  orchestrator:
+    level: INFO
+    handlers: [console, json_file]
+    propagate: false
+
+  # FastAPI / Uvicorn
+  uvicorn:
+    level: INFO
+    handlers: [console]
+    propagate: false
+
+  uvicorn.error:
+    level: INFO
+    handlers: [console, error_file]
+    propagate: false
+
+  uvicorn.access:
+    level: INFO
+    handlers: [console]
+    propagate: false
+
+  sqlalchemy.engine:
+    level: WARNING
+    handlers: [json_file]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, json_file, error_file]

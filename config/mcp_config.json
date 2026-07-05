@@ -1,0 +1,96 @@
+{
+  "_comment": "NexusScale Compliance Engine — MCP Client Configuration Manifest",
+  "_version": "1.0.0",
+  "_updated": "2026-07-06",
+
+  "transport": {
+    "protocol": "jsonrpc",
+    "version": "2.0",
+    "encoding": "utf-8"
+  },
+
+  "server": {
+    "primary": {
+      "url": "http://localhost:9000/mcp",
+      "description": "Primary enterprise database bridge (local dev stub)",
+      "health_check_path": "/health",
+      "timeout_seconds": 10,
+      "max_retries": 3,
+      "retry_backoff_seconds": [1, 2, 4]
+    },
+    "fallback": {
+      "url": "http://localhost:9001/mcp",
+      "description": "Fallback replica bridge",
+      "timeout_seconds": 8,
+      "enabled": false
+    }
+  },
+
+  "circuit_breaker": {
+    "failure_threshold": 5,
+    "recovery_timeout_seconds": 30,
+    "success_threshold_in_half_open": 2
+  },
+
+  "connection_pool": {
+    "max_connections": 10,
+    "max_keepalive_connections": 5,
+    "keepalive_expiry_seconds": 30
+  },
+
+  "tools": {
+    "fetch_corporate_policy": {
+      "description": "Retrieve spending policy limits for a given department and category",
+      "method": "tools/call",
+      "schema": {
+        "name": "fetch_corporate_policy",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "department": {"type": "string", "description": "Department name"},
+            "category":   {"type": "string", "description": "Expense category (optional, default=*)"}
+          },
+          "required": ["department"]
+        }
+      }
+    },
+    "write_audit_event": {
+      "description": "Persist a compliance audit event to the enterprise audit log",
+      "method": "tools/call",
+      "schema": {
+        "name": "write_audit_event",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "trace_id":    {"type": "string"},
+            "event_type":  {"type": "string"},
+            "agent_name":  {"type": "string"},
+            "outcome":     {"type": "string"},
+            "payload":     {"type": "object"}
+          },
+          "required": ["trace_id", "event_type", "agent_name", "outcome"]
+        }
+      }
+    },
+    "fetch_employee_profile": {
+      "description": "Retrieve employee profile details for notification routing",
+      "method": "tools/call",
+      "schema": {
+        "name": "fetch_employee_profile",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "employee_id": {"type": "string"}
+          },
+          "required": ["employee_id"]
+        }
+      }
+    }
+  },
+
+  "logging": {
+    "log_requests": true,
+    "log_responses": true,
+    "redact_fields": ["session_key", "employee_email"]
+  }
+}
