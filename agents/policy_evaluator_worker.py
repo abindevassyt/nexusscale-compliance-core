@@ -64,6 +64,8 @@ class PolicyEvaluatorWorker(BaseAgent):
         super().__init__()
         self._mcp = mcp_client
         self._local_ruleset = local_ruleset  # fallback if MCP fails
+        self._policy_cache: dict[tuple[str, str], dict] = {}
+        self._cache_ttl = 60.0  # seconds
 
     # ── Validation ────────────────────────────────────────────────────────────
 
@@ -196,13 +198,20 @@ class PolicyEvaluatorWorker(BaseAgent):
         """
         from core.exceptions import MCPError
 
+        cache_key = (payload.department, payload.category.value)
+        cached = self._policy_cache.get(cache_key)
+        if cached and (time.monotonic() - cached["timestamp"]) < self._cache_ttl:
+            return cached["policy"]
+
         try:
-            return await fetch_corporate_policy(
+            policy = await fetch_corporate_policy(
                 client=self._mcp,
                 department=payload.department,
                 category=payload.category.value,
                 correlation_id=context.correlation_id,
             )
+            self._policy_cache[cache_key] = {"policy": policy, "timestamp": time.monotonic()}
+            return policy
         except MCPError as exc:
             logger.warning(
                 "MCP policy fetch failed — falling back to local ruleset",

@@ -4,7 +4,7 @@ disable_existing_loggers: false
 formatters:
   json:
     class: pythonjsonlogger.jsonlogger.JsonFormatter
-    format: "%(asctime)s %(name)s %(levelname)s %(message)s %(correlation_id)s %(agent_name)s"
+    format: "%(asctime)s %(name)s %(levelname)s %(message)s"
     datefmt: "%Y-%m-%dT%H:%M:%S"
 
   rich_console:
@@ -13,7 +13,7 @@ formatters:
     show_time: true
 
   standard:
-    format: "%(asctime)s [%(levelname)-8s] [%(name)s] [trace=%(correlation_id)s] %(message)s"
+    format: "%(asctime)s [%(levelname)-8s] [%(name)s] %(message)s"
     datefmt: "%Y-%m-%dT%H:%M:%S"
 
 filters:

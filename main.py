@@ -480,9 +480,12 @@ async def reset_circuit_breaker() -> JSONResponse:
 )
 async def get_recent_audit_events(limit: int = 20) -> JSONResponse:
     """Returns the most recent audit events from the local request log."""
+    if _pipeline._audit is None:
+        raise HTTPException(status_code=503, detail="Audit service not initialized")
+    events = await _pipeline._audit.query_recent_events(limit)
     return JSONResponse({
-        "count": len(_stats["recent_requests"]),
-        "events": list(_stats["recent_requests"])[:limit],
+        "count": len(events),
+        "events": events,
     })
 
 

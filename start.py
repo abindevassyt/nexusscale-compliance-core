@@ -241,6 +241,7 @@ def main() -> None:
         if not args.mcp_only:
             print(CYAN(f"  🌐  Control Panel  : http://localhost:{args.port}/"))
             print(CYAN(f"  📖  API Docs       : http://localhost:{args.port}/docs"))
+            print(CYAN(f"  📊  Dashboard      : http://localhost:{args.port}/"))
         if not args.api_only:
             print(CYAN(f"  🗄   MCP Stub       : http://localhost:{args.mcp_port}/health"))
         print(BOLD("─" * 60))

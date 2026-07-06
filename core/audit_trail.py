@@ -131,6 +131,30 @@ class AuditTrailService:
                 for r in rows
             ]
 
+    async def query_recent_events(self, limit: int = 100) -> list[dict]:
+        """Retrieve the most recent audit events across all traces."""
+        from sqlalchemy import select
+
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(AuditEventRecord)
+                .order_by(AuditEventRecord.timestamp.desc())
+                .limit(limit)
+            )
+            rows = result.scalars().all()
+            return [
+                {
+                    "event_id": r.event_id,
+                    "trace_id": r.trace_id,
+                    "event_type": r.event_type,
+                    "agent_name": r.agent_name,
+                    "outcome": r.outcome,
+                    "duration_ms": r.duration_ms,
+                    "timestamp": r.timestamp.isoformat() if r.timestamp else None,
+                }
+                for r in rows
+            ]
+
     async def shutdown(self) -> None:
         await self._engine.dispose()
         logger.info("Audit trail database connection closed")
