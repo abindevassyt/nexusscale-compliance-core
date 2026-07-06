@@ -140,7 +140,7 @@ def event_loop():
 @pytest_asyncio.fixture
 async def audit_service() -> AsyncGenerator[AuditTrailService, None]:
     """In-memory SQLite audit trail for tests."""
-    svc = AuditTrailService("sqlite+aiosqlite:///:memory:")
+    svc = AuditTrailService("sqlite+aiosqlite:///./test_audit_db.sqlite")
     await svc.initialize()
     yield svc
     await svc.shutdown()

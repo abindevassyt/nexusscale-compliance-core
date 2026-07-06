@@ -1,6 +1,6 @@
 # ─── Core Framework ───────────────────────────────────────────────────────────
 fastapi==0.115.6
-uvicorn[standard]==0.32.1
+uvicorn[standard]>=0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.0
 
@@ -13,7 +13,7 @@ httpx==0.28.1
 websockets==14.1
 
 # ─── Async & Concurrency ──────────────────────────────────────────────────────
-anyio==4.7.0
+anyio>=4.8.0
 asyncio-throttle==1.0.2
 tenacity==9.0.0
 
@@ -49,6 +49,6 @@ python-dotenv==1.0.1
 pyyaml==6.0.2
 
 # ─── Observability ────────────────────────────────────────────────────────────
-opentelemetry-sdk==1.29.0
-opentelemetry-instrumentation-fastapi==0.50b0
-prometheus-client==0.21.1
+opentelemetry-sdk>=1.31.0
+opentelemetry-instrumentation-fastapi
+prometheus-client

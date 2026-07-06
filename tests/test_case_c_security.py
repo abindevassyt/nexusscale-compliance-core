@@ -231,7 +231,6 @@ class TestPipelineSecurityRejection:
             object.__setattr__(payload, "amount", Decimal("42.50"))
             object.__setattr__(payload, "session_key", make_session_key("ENG-001"))
             object.__setattr__(payload, "trace_id", uuid.uuid4())
-            object.__setattr__(payload, "amount_cents", 4250)
 
             from core.security import validate_inbound_payload_security
             validate_inbound_payload_security(

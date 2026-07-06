@@ -21,6 +21,7 @@ Expected outcome:
 from __future__ import annotations
 
 import uuid
+import asyncio
 from decimal import Decimal
 from unittest.mock import AsyncMock, call, patch
 
@@ -166,7 +167,8 @@ class TestSupervisorFlaggingPipeline:
         supervisor._resolution_worker.execute = AsyncMock(return_value=[])
         await supervisor.execute(payload, run_context)
 
-        events = await audit_service.query_by_trace(payload.trace_id)
+        await asyncio.sleep(0.1)
+        events = await audit_service.query_by_trace(run_context.trace_id)
         event_types = [e["event_type"] for e in events]
         assert "FLAGGED" in event_types, f"FLAGGED event not in audit trail: {event_types}"
 

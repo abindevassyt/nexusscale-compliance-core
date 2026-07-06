@@ -153,8 +153,21 @@ class ResolutionCommunicator(BaseAgent):
             logger.info("Teams dispatch skipped (not configured)", extra={"trace_id": str(context.trace_id)})
 
         if not self._slack_enabled and not self._teams_enabled:
+            # Fallback to local file logging for time being
+            file_result = await self._dispatch_local_file(notification, context)
+            results.append(file_result)
+            await self._emit_audit(
+                context,
+                event_type=AuditEventType.NOTIFICATION_SENT,
+                outcome=f"Local file dispatch {'succeeded' if file_result.success else 'failed'}",
+                payload_snapshot={
+                    "channel": NotificationChannel.LOCAL_FILE.value,
+                    "success": file_result.success,
+                    "attempts": file_result.attempts,
+                },
+            )
             logger.warning(
-                "⚠️  No notification channels configured — logging alert only",
+                "⚠️  No notification channels configured — logged alert to logs/notifications.log",
                 extra={
                     "agent": self.name,
                     "trace_id": str(context.trace_id),
@@ -275,6 +288,53 @@ class ResolutionCommunicator(BaseAgent):
             response_code=last_status,
             error_detail=last_error,
         )
+
+    # ── Local File Dispatch (Fallback) ────────────────────────────────────────
+
+    async def _dispatch_local_file(
+        self, notification: NotificationPayload, context: AgentRunContext
+    ) -> NotificationResult:
+        import json
+        import os
+        import asyncio
+
+        def write_file():
+            os.makedirs("logs", exist_ok=True)
+            with open("logs/notifications.log", "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "trace_id": str(notification.trace_id),
+                    "severity": notification.severity,
+                    "subject": notification.subject,
+                    "body": notification.body
+                }
+                f.write(json.dumps(record) + "\n")
+                
+        try:
+            await asyncio.to_thread(write_file)
+            logger.info(
+                "✅ LOCAL_FILE notification dispatched",
+                extra={"trace_id": str(context.trace_id), "channel": "local_file"},
+            )
+            return NotificationResult(
+                trace_id=notification.trace_id,
+                channel=NotificationChannel.LOCAL_FILE,
+                success=True,
+                attempts=1,
+                response_code=200,
+            )
+        except Exception as exc:
+            logger.error(
+                f"✗ LOCAL_FILE webhook dispatch failed: {exc}",
+                extra={"trace_id": str(context.trace_id), "channel": "local_file", "error": str(exc)},
+            )
+            return NotificationResult(
+                trace_id=notification.trace_id,
+                channel=NotificationChannel.LOCAL_FILE,
+                success=False,
+                attempts=1,
+                error_detail=str(exc)
+            )
 
     # ── Notification Builder ──────────────────────────────────────────────────
 

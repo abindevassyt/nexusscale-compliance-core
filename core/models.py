@@ -59,6 +59,7 @@ class NotificationChannel(str, Enum):
     SLACK = "slack"
     TEAMS = "teams"
     EMAIL = "email"
+    LOCAL_FILE = "local_file"
 
 
 class CircuitState(str, Enum):

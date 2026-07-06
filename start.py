@@ -13,11 +13,19 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
+import asyncio
 import os
-import subprocess
+import signal
 import sys
 import time
+
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+import argparse
+import subprocess
 import webbrowser
 from pathlib import Path
 
